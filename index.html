@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>KPI theo ngày — Mỗi mốc có điều kiện riêng</title>
+
+  <!-- Excel export (XLSX) via SheetJS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#121b2e;
+      --panel2:#0f1729;
+      --text:#e8eefc;
+      --muted:#a9b7d6;
+      --line:rgba(255,255,255,.10);
+      --accent:#7aa2ff;
+      --accent2:#41d1b7;
+      --danger:#ff6b6b;
+      --ok:#7dff8a;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background: radial-gradient(1200px 700px at 10% 0%, rgba(122,162,255,.15), transparent 55%),
+                  radial-gradient(900px 600px at 90% 10%, rgba(65,209,183,.12), transparent 50%),
+                  var(--bg);
+    }
+    header{
+      padding:22px 18px 10px;
+      max-width:1400px;
+      margin:0 auto;
+    }
+    h1{
+      margin:0 0 6px;
+      font-size:20px;
+      letter-spacing:.2px;
+    }
+    .sub{
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.4;
+    }
+
+    .wrap{
+      max-width:1400px;
+      margin:0 auto;
+      padding:14px 18px 24px;
+      display:grid;
+      grid-template-columns: 1.05fr 1.95fr;
+      gap:16px;
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 14px 10px;
+      border-bottom:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+    }
+    .card .hd .title{
+      font-weight:700;
+      font-size:14px;
+      margin:0;
+    }
+    .card .bd{
+      padding:12px 14px 14px;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+    .row.between{justify-content:space-between}
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      padding:9px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      transition:.15s ease;
+      font-weight:600;
+      font-size:13px;
+    }
+    .btn:hover{transform:translateY(-1px); border-color:rgba(255,255,255,.18)}
+    .btn.primary{background: rgba(122,162,255,.18); border-color:rgba(122,162,255,.35)}
+    .btn.ok{background: rgba(125,255,138,.12); border-color:rgba(125,255,138,.25)}
+    .btn.danger{background: rgba(255,107,107,.12); border-color:rgba(255,107,107,.25)}
+    .btn:active{transform:translateY(0)}
+
+    table{
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+    th, td{
+      border-bottom:1px solid var(--line);
+      padding:9px 8px;
+      text-align:left;
+      vertical-align:middle;
+    }
+    th{
+      color:var(--muted);
+      font-weight:700;
+      font-size:12px;
+      letter-spacing:.2px;
+    }
+    tr:last-child td{border-bottom:none}
+
+    .inp, textarea{
+      width:100%;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.15);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      outline:none;
+      font-size:13px;
+    }
+    textarea{
+      min-height:220px;
+      resize:vertical;
+      font-family:var(--mono);
+      line-height:1.4;
+    }
+    .cell-inp{
+      width:100%;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.12);
+      color:var(--text);
+      border-radius:10px;
+      padding:7px 8px;
+      outline:none;
+      font-size:13px;
+      font-family:var(--mono);
+    }
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:10px;
+    }
+    .field{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+    label{
+      color:var(--muted);
+      font-size:12px;
+      font-weight:650;
+    }
+    .chk{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+      color:var(--text);
+      font-size:13px;
+      font-weight:650;
+    }
+    .summary{
+      margin-top:10px;
+      padding:10px 12px;
+      border:1px dashed rgba(255,255,255,.18);
+      border-radius:14px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.45;
+      background: rgba(0,0,0,.10);
+    }
+    .pill{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      font-size:12px;
+      font-weight:700;
+    }
+    .foot{
+      color:var(--muted);
+      font-size:12px;
+      margin-top:10px;
+      line-height:1.4;
+    }
+
+    @media (max-width: 1050px){
+      .wrap{grid-template-columns:1fr; }
+      textarea{min-height:180px;}
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>KPI theo ngày — Mỗi mốc có điều kiện riêng</h1>
+    <div class="sub">
+      Logic giống bản PyQt5: mỗi mốc có <span class="pill">required_days</span> riêng, chỉ khi đủ ngày mới được áp mốc.
+      Ngày nào đạt thì áp <b>mốc cao nhất</b> trong danh sách mốc đủ điều kiện.
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- LEFT -->
+    <section class="card">
+      <div class="hd">
+        <div class="row between">
+          <p class="title">Bảng mốc thưởng (mốc ≥ xu | thưởng | ngày cần đạt)</p>
+          <div class="row">
+            <button class="btn" id="btnAdd">Thêm mốc</button>
+            <button class="btn danger" id="btnDel">Xoá mốc</button>
+            <button class="btn" id="btnReset">Reset mặc định</button>
+          </div>
+        </div>
+      </div>
+      <div class="bd">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:52px;">Chọn</th>
+              <th>Mốc (≥ xu)</th>
+              <th>Thưởng (đ)</th>
+              <th>Điều kiện (ngày)</th>
+            </tr>
+          </thead>
+          <tbody id="thBody"></tbody>
+        </table>
+
+        <div style="height:12px"></div>
+
+        <div class="card" style="box-shadow:none; background:rgba(0,0,0,.10); border-color:rgba(255,255,255,.08)">
+          <div class="hd" style="background:transparent">
+            <p class="title">Cài đặt phạt</p>
+          </div>
+          <div class="bd">
+            <div class="field">
+              <div class="chk">
+                <input type="checkbox" id="chkPenalty" checked />
+                <span>Bật phạt nếu &lt; ngưỡng</span>
+              </div>
+            </div>
+
+            <div class="grid2" style="margin-top:10px">
+              <div class="field">
+                <label>Phạt nếu xu &lt;</label>
+                <input class="inp" id="penMin" type="number" min="0" max="200000" value="6000" />
+              </div>
+              <div class="field">
+                <label>Tiền phạt</label>
+                <input class="inp" id="penAmt" type="number" min="-10000000" max="10000000" value="-50000" />
+              </div>
+            </div>
+
+            <div class="foot">
+              Gợi ý: tiền phạt để số âm (vd <b>-50000</b>) để trừ tiền.
+            </div>
+          </div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="row between">
+          <button class="btn primary" id="btnCalc">Tính KPI</button>
+          <div class="row">
+            <button class="btn ok" id="btnCsv">Export CSV</button>
+            <button class="btn ok" id="btnXlsx">Export Excel</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <section style="display:flex; flex-direction:column; gap:16px;">
+      <section class="card" style="flex:1;">
+        <div class="hd">
+          <p class="title">Dán danh sách xu (mỗi dòng 1 số)</p>
+        </div>
+        <div class="bd">
+          <textarea id="inputXu" placeholder="Ví dụ:
+6000
+7000
+12000
+35000
+..."></textarea>
+          <div class="foot">
+            Hỗ trợ nhập có dấu phẩy: <span class="pill">10,000</span> hoặc số dạng <span class="pill">10000</span>.
+          </div>
+        </div>
+      </section>
+
+      <section class="card" style="flex:1.2;">
+        <div class="hd">
+          <p class="title">Kết quả</p>
+        </div>
+        <div class="bd">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:80px;">Ngày</th>
+                <th>Xu</th>
+                <th>Mốc áp dụng</th>
+                <th>Tiền (VND)</th>
+              </tr>
+            </thead>
+            <tbody id="rsBody"></tbody>
+          </table>
+
+          <div class="summary" id="summary">
+            Tổng ngày: 0 | Tổng tiền: 0đ | Mốc đủ điều kiện: —
+          </div>
+
+          <div class="foot">
+            Export lấy dữ liệu từ bảng kết quả đang hiển thị.
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    // =========================
+    // DATA
+    // =========================
+    const DEFAULT_THRESHOLDS = [
+      { value: 6000,  bonus: 0,       required_days: 999 },
+
+      { value: 7000,  bonus: 5000,    required_days: 10 },
+      { value: 8000,  bonus: 10000,   required_days: 10 },
+      { value: 9000,  bonus: 15000,   required_days: 10 },
+
+      { value: 10000, bonus: 50000,   required_days: 7 },
+      { value: 12000, bonus: 70000,   required_days: 7 },
+      { value: 14000, bonus: 90000,   required_days: 7 },
+
+      { value: 16000, bonus: 110000,  required_days: 6 },
+      { value: 18000, bonus: 130000,  required_days: 6 },
+
+      { value: 20000, bonus: 200000,  required_days: 5 },
+      { value: 22000, bonus: 215000,  required_days: 5 },
+      { value: 24000, bonus: 225000,  required_days: 5 },
+
+      { value: 26000, bonus: 260000,  required_days: 4 },
+      { value: 28000, bonus: 275000,  required_days: 4 },
+      { value: 30000, bonus: 300000,  required_days: 4 },
+
+      { value: 35000, bonus: 405000,  required_days: 3 },
+      { value: 40000, bonus: 525000,  required_days: 3 },
+
+      { value: 50000, bonus: 605000,  required_days: 2 },
+      { value: 60000, bonus: 725000,  required_days: 2 },
+      { value: 70000, bonus: 805000,  required_days: 2 },
+
+      { value: 80000, bonus: 930000,  required_days: 1 },
+      { value: 90000, bonus: 1000000, required_days: 1 },
+      { value: 100000,bonus: 1500000, required_days: 1 },
+    ];
+
+    // =========================
+    // HELPERS
+    // =========================
+    const fmt = (n) => (Number.isFinite(n) ? n.toLocaleString("en-US") : String(n));
+
+    function parseIntLoose(s){
+      // like Python: int(float(x.replace(",", "")))
+      const cleaned = String(s).trim().replace(/,/g, "");
+      if(!cleaned) throw new Error("Dòng trống");
+      const num = Number(cleaned);
+      if(!Number.isFinite(num)) throw new Error(`Dòng không hợp lệ: ${JSON.stringify(s)}`);
+      return Math.trunc(num);
+    }
+
+    function parseDailyXu(text){
+      const xs = [];
+      const lines = String(text).split(/\r?\n/);
+      for(const line of lines){
+        const ln = line.trim();
+        if(!ln) continue;
+        xs.push(parseIntLoose(ln));
+      }
+      return xs;
+    }
+
+    function sortThresholds(ths){
+      return ths.slice().sort((a,b)=>a.value-b.value);
+    }
+
+    function qualifiedThresholds(dailyXu, thresholds){
+      // Python: cnt = sum(1 for x in daily_xu if x >= th.value)
+      const quals = [];
+      for(const th of thresholds){
+        let cnt = 0;
+        for(const x of dailyXu) if(x >= th.value) cnt++;
+        if(cnt >= th.required_days) quals.push(th);
+      }
+      return sortThresholds(quals);
+    }
+
+    function bonusForDay(xu, quals, penaltyOn, penaltyMinXu, penaltyAmount){
+      // y hệt Python
+      if(penaltyOn && xu < penaltyMinXu){
+        return { money: penaltyAmount, moc: null };
+      }
+      let applyMoc = null;
+      let applyBonus = 0;
+      for(const th of quals){
+        if(xu >= th.value){
+          applyMoc = th.value;
+          applyBonus = th.bonus;
+        }
+      }
+      return { money: applyBonus, moc: applyMoc };
+    }
+
+    // =========================
+    // THRESHOLD TABLE UI
+    // =========================
+    const thBody = document.getElementById("thBody");
+
+    function makeThRow(th){
+      const tr = document.createElement("tr");
+
+      const tdSel = document.createElement("td");
+      tdSel.style.width = "52px";
+      tdSel.innerHTML = `<input type="checkbox" class="rowSel" />`;
+      tr.appendChild(tdSel);
+
+      const tdV = document.createElement("td");
+      tdV.innerHTML = `<input class="cell-inp thValue" inputmode="numeric" value="${th.value}" />`;
+      tr.appendChild(tdV);
+
+      const tdB = document.createElement("td");
+      tdB.innerHTML = `<input class="cell-inp thBonus" inputmode="numeric" value="${th.bonus}" />`;
+      tr.appendChild(tdB);
+
+      const tdD = document.createElement("td");
+      tdD.innerHTML = `<input class="cell-inp thDays" inputmode="numeric" value="${th.required_days}" />`;
+      tr.appendChild(tdD);
+
+      return tr;
+    }
+
+    function loadThresholdsToTable(thresholds){
+      thBody.innerHTML = "";
+      for(const th of thresholds){
+        thBody.appendChild(makeThRow(th));
+      }
+    }
+
+    function readThresholdsFromTable(){
+      const rows = Array.from(thBody.querySelectorAll("tr"));
+      const ths = [];
+      for(const tr of rows){
+        const vEl = tr.querySelector(".thValue");
+        const bEl = tr.querySelector(".thBonus");
+        const dEl = tr.querySelector(".thDays");
+        if(!vEl || !bEl || !dEl) continue;
+
+        try{
+          const value = parseIntLoose(vEl.value);
+          const bonus = parseIntLoose(bEl.value);
+          const req = parseIntLoose(dEl.value);
+          ths.push({ value, bonus, required_days: req });
+        }catch(_e){
+          // bỏ qua dòng lỗi (giống Python: except: pass)
+        }
+      }
+      return sortThresholds(ths);
+    }
+
+    // =========================
+    // RESULT TABLE UI
+    // =========================
+    const rsBody = document.getElementById("rsBody");
+    const summaryEl = document.getElementById("summary");
+
+    let lastRows = []; // [{day,xu,mocText,money}]
+    let lastQuals = [];
+    let lastTotal = 0;
+
+    function renderResults(rows, total, quals){
+      rsBody.innerHTML = "";
+      for(const r of rows){
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${r.day}</td>
+          <td>${fmt(r.xu)}</td>
+          <td>${r.mocText}</td>
+          <td>${fmt(r.money)}</td>
+        `;
+        rsBody.appendChild(tr);
+      }
+
+      const qualText = (quals && quals.length)
+        ? quals.map(th => `>=${fmt(th.value)} (+${fmt(th.bonus)}đ, ≥${fmt(th.required_days)} ngày)`).join(", ")
+        : "Không có";
+
+      summaryEl.textContent =
+        `Tổng ngày: ${rows.length} | Tổng tiền: ${fmt(total)} đ | Mốc đủ điều kiện: ${qualText}`;
+    }
+
+    // =========================
+    // ACTIONS
+    // =========================
+    document.getElementById("btnAdd").addEventListener("click", () => {
+      thBody.appendChild(makeThRow({ value: 10000, bonus: 0, required_days: 1 }));
+    });
+
+    document.getElementById("btnDel").addEventListener("click", () => {
+      const rows = Array.from(thBody.querySelectorAll("tr"));
+      for(const tr of rows){
+        const ck = tr.querySelector(".rowSel");
+        if(ck && ck.checked) tr.remove();
+      }
+    });
+
+    document.getElementById("btnReset").addEventListener("click", () => {
+      loadThresholdsToTable(DEFAULT_THRESHOLDS);
+    });
+
+    document.getElementById("btnCalc").addEventListener("click", () => {
+      let dailyXu;
+      try{
+        dailyXu = parseDailyXu(document.getElementById("inputXu").value);
+      }catch(e){
+        alert("Lỗi dữ liệu: " + e.message);
+        return;
+      }
+
+      const thresholds = readThresholdsFromTable();
+      if(!thresholds.length){
+        alert("Thiếu mốc: Hãy nhập ít nhất 1 mốc.");
+        return;
+      }
+
+      const penaltyOn = document.getElementById("chkPenalty").checked;
+      const penMin = parseIntLoose(document.getElementById("penMin").value);
+      const penAmt = parseIntLoose(document.getElementById("penAmt").value);
+
+      const quals = qualifiedThresholds(dailyXu, thresholds);
+
+      const rows = [];
+      let total = 0;
+
+      for(let i=0;i<dailyXu.length;i++){
+        const xu = dailyXu[i];
+        const { money, moc } = bonusForDay(xu, quals, penaltyOn, penMin, penAmt);
+        total += money;
+
+        const mocText = (moc !== null)
+          ? `>=${fmt(moc)}`
+          : ((penaltyOn && xu < penMin) ? `<${fmt(penMin)}` : "—");
+
+        rows.push({ day: i+1, xu, mocText, money });
+      }
+
+      lastRows = rows;
+      lastQuals = quals;
+      lastTotal = total;
+      renderResults(rows, total, quals);
+    });
+
+    // =========================
+    // EXPORT CSV
+    // =========================
+    function downloadBlob(filename, blob){
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    document.getElementById("btnCsv").addEventListener("click", () => {
+      if(!lastRows.length){
+        alert("Chưa có dữ liệu. Hãy bấm Tính KPI trước.");
+        return;
+      }
+      const header = ["Ngày","Xu","Mốc áp dụng","Tiền (VND)"];
+      const lines = [header.join(",")];
+      for(const r of lastRows){
+        // CSV simple: wrap if needed
+        const row = [
+          r.day,
+          r.xu,
+          `"${String(r.mocText).replace(/"/g,'""')}"`,
+          r.money
+        ];
+        lines.push(row.join(","));
+      }
+      const csv = "\uFEFF" + lines.join("\n"); // BOM for Excel VN
+      downloadBlob("kpi_ngay.csv", new Blob([csv], {type:"text/csv;charset=utf-8"}));
+    });
+
+    // =========================
+    // EXPORT XLSX
+    // =========================
+    document.getElementById("btnXlsx").addEventListener("click", () => {
+      if(!lastRows.length){
+        alert("Chưa có dữ liệu. Hãy bấm Tính KPI trước.");
+        return;
+      }
+      if(typeof XLSX === "undefined"){
+        alert("Thiếu thư viện XLSX (SheetJS). Kiểm tra CDN.");
+        return;
+      }
+
+      const aoa = [];
+      aoa.push(["Ngày","Xu","Mốc áp dụng","Tiền (VND)"]);
+      for(const r of lastRows){
+        aoa.push([r.day, r.xu, r.mocText, r.money]);
+      }
+
+      const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+      // Optional: set column widths
+      ws["!cols"] = [{wch:8},{wch:14},{wch:18},{wch:14}];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "KPI Ngày");
+      XLSX.writeFile(wb, "kpi_ngay.xlsx");
+    });
+
+    // init
+    loadThresholdsToTable(DEFAULT_THRESHOLDS);
+  </script>
+</body>
+</html>
