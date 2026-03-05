@@ -39,16 +39,8 @@
       max-width:1400px;
       margin:0 auto;
     }
-    h1{
-      margin:0 0 6px;
-      font-size:20px;
-      letter-spacing:.2px;
-    }
-    .sub{
-      color:var(--muted);
-      font-size:13px;
-      line-height:1.4;
-    }
+    h1{ margin:0 0 6px; font-size:20px; letter-spacing:.2px; }
+    .sub{ color:var(--muted); font-size:13px; line-height:1.4; }
 
     .wrap{
       max-width:1400px;
@@ -57,6 +49,7 @@
       display:grid;
       grid-template-columns: 1.05fr 1.95fr;
       gap:16px;
+      align-items:start;
     }
     .card{
       background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
@@ -75,17 +68,10 @@
       font-size:14px;
       margin:0;
     }
-    .card .bd{
-      padding:12px 14px 14px;
-    }
+    .card .bd{ padding:12px 14px 14px; }
 
-    .row{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-    .row.between{justify-content:space-between}
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .row.between{ justify-content:space-between; }
     .btn{
       border:1px solid var(--line);
       background: rgba(255,255,255,.04);
@@ -103,11 +89,7 @@
     .btn.danger{background: rgba(255,107,107,.12); border-color:rgba(255,107,107,.25)}
     .btn:active{transform:translateY(0)}
 
-    table{
-      width:100%;
-      border-collapse:collapse;
-      font-size:13px;
-    }
+    table{ width:100%; border-collapse:collapse; font-size:13px; }
     th, td{
       border-bottom:1px solid var(--line);
       padding:9px 8px;
@@ -133,7 +115,7 @@
       font-size:13px;
     }
     textarea{
-      min-height:220px;
+      min-height:360px;
       resize:vertical;
       font-family:var(--mono);
       line-height:1.4;
@@ -154,16 +136,8 @@
       grid-template-columns: 1fr 1fr;
       gap:10px;
     }
-    .field{
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-    label{
-      color:var(--muted);
-      font-size:12px;
-      font-weight:650;
-    }
+    .field{ display:flex; flex-direction:column; gap:6px; }
+    label{ color:var(--muted); font-size:12px; font-weight:650; }
     .chk{
       display:flex;
       align-items:center;
@@ -193,16 +167,50 @@
       font-size:12px;
       font-weight:700;
     }
-    .foot{
-      color:var(--muted);
-      font-size:12px;
-      margin-top:10px;
-      line-height:1.4;
+    .foot{ color:var(--muted); font-size:12px; margin-top:10px; line-height:1.4; }
+
+    /* RIGHT SIDE: input + result same row */
+    .rightGrid{
+      display:grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap:16px;
+      align-items:start;
     }
 
+    /* Sticky action bar (calc/export) so no need scroll */
+    .stickyActions{
+      position: sticky;
+      top: 10px;
+      z-index: 50;
+      margin: 10px 0 0;
+      padding: 10px;
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: 14px;
+      background: rgba(10,16,30,.72);
+      backdrop-filter: blur(10px);
+    }
+
+    .miniCard{
+      border:1px solid rgba(255,255,255,.10);
+      background: rgba(0,0,0,.12);
+      border-radius:14px;
+      padding:10px 12px;
+    }
+    .miniTitle{
+      margin:0 0 8px;
+      font-size:12px;
+      font-weight:800;
+      color:var(--muted);
+      letter-spacing:.2px;
+      text-transform:uppercase;
+    }
+
+    @media (max-width: 1150px){
+      .rightGrid{grid-template-columns:1fr;}
+      textarea{min-height:260px;}
+    }
     @media (max-width: 1050px){
-      .wrap{grid-template-columns:1fr; }
-      textarea{min-height:180px;}
+      .wrap{grid-template-columns:1fr;}
     }
   </style>
 </head>
@@ -211,7 +219,7 @@
   <header>
     <h1>KPI theo ngày — Mỗi mốc có điều kiện riêng</h1>
     <div class="sub">
-      Logic giống bản PyQt5: mỗi mốc có <span class="pill">required_days</span> riêng, chỉ khi đủ ngày mới được áp mốc.
+      Logic giống PyQt5: mỗi mốc có <span class="pill">required_days</span> riêng, chỉ khi đủ ngày mới được áp mốc.
       Ngày nào đạt thì áp <b>mốc cao nhất</b> trong danh sách mốc đủ điều kiện.
     </div>
   </header>
@@ -228,7 +236,19 @@
             <button class="btn" id="btnReset">Reset mặc định</button>
           </div>
         </div>
+
+        <!-- STICKY ACTIONS (always visible) -->
+        <div class="stickyActions">
+          <div class="row between">
+            <button class="btn primary" id="btnCalc">Tính KPI</button>
+            <div class="row">
+              <button class="btn ok" id="btnCsv">Export CSV</button>
+              <button class="btn ok" id="btnXlsx">Export Excel</button>
+            </div>
+          </div>
+        </div>
       </div>
+
       <div class="bd">
         <table>
           <thead>
@@ -273,21 +293,12 @@
           </div>
         </div>
 
-        <div style="height:12px"></div>
-
-        <div class="row between">
-          <button class="btn primary" id="btnCalc">Tính KPI</button>
-          <div class="row">
-            <button class="btn ok" id="btnCsv">Export CSV</button>
-            <button class="btn ok" id="btnXlsx">Export Excel</button>
-          </div>
-        </div>
       </div>
     </section>
 
-    <!-- RIGHT -->
-    <section style="display:flex; flex-direction:column; gap:16px;">
-      <section class="card" style="flex:1;">
+    <!-- RIGHT: input + result same row -->
+    <section class="rightGrid">
+      <section class="card">
         <div class="hd">
           <p class="title">Dán danh sách xu (mỗi dòng 1 số)</p>
         </div>
@@ -304,7 +315,7 @@
         </div>
       </section>
 
-      <section class="card" style="flex:1.2;">
+      <section class="card">
         <div class="hd">
           <p class="title">Kết quả</p>
         </div>
@@ -312,7 +323,7 @@
           <table>
             <thead>
               <tr>
-                <th style="width:80px;">Ngày</th>
+                <th style="width:70px;">Ngày</th>
                 <th>Xu</th>
                 <th>Mốc áp dụng</th>
                 <th>Tiền (VND)</th>
@@ -321,8 +332,29 @@
             <tbody id="rsBody"></tbody>
           </table>
 
+          <!-- Tổng tiền -->
           <div class="summary" id="summary">
             Tổng ngày: 0 | Tổng tiền: 0đ | Mốc đủ điều kiện: —
+          </div>
+
+          <!-- Tổng theo mốc -->
+          <div class="miniCard" style="margin-top:12px">
+            <p class="miniTitle">Tổng tiền thưởng theo mốc</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Mốc áp dụng</th>
+                  <th style="width:90px;">Số ngày</th>
+                  <th style="width:160px;">Tổng tiền (đ)</th>
+                </tr>
+              </thead>
+              <tbody id="aggBody">
+                <tr><td colspan="3" style="color:var(--muted)">Chưa có dữ liệu</td></tr>
+              </tbody>
+            </table>
+            <div class="foot" id="aggFooter">
+              Tổng thưởng: 0đ | Tổng phạt: 0đ | Thưởng - Phạt: 0đ
+            </div>
           </div>
 
           <div class="foot">
@@ -377,7 +409,6 @@
     const fmt = (n) => (Number.isFinite(n) ? n.toLocaleString("en-US") : String(n));
 
     function parseIntLoose(s){
-      // like Python: int(float(x.replace(",", "")))
       const cleaned = String(s).trim().replace(/,/g, "");
       if(!cleaned) throw new Error("Dòng trống");
       const num = Number(cleaned);
@@ -401,7 +432,6 @@
     }
 
     function qualifiedThresholds(dailyXu, thresholds){
-      // Python: cnt = sum(1 for x in daily_xu if x >= th.value)
       const quals = [];
       for(const th of thresholds){
         let cnt = 0;
@@ -412,7 +442,6 @@
     }
 
     function bonusForDay(xu, quals, penaltyOn, penaltyMinXu, penaltyAmount){
-      // y hệt Python
       if(penaltyOn && xu < penaltyMinXu){
         return { money: penaltyAmount, moc: null };
       }
@@ -477,7 +506,7 @@
           const req = parseIntLoose(dEl.value);
           ths.push({ value, bonus, required_days: req });
         }catch(_e){
-          // bỏ qua dòng lỗi (giống Python: except: pass)
+          // ignore (like Python except: pass)
         }
       }
       return sortThresholds(ths);
@@ -488,10 +517,65 @@
     // =========================
     const rsBody = document.getElementById("rsBody");
     const summaryEl = document.getElementById("summary");
+    const aggBody = document.getElementById("aggBody");
+    const aggFooter = document.getElementById("aggFooter");
 
-    let lastRows = []; // [{day,xu,mocText,money}]
+    let lastRows = []; // [{day,xu,mocText,money,mocRaw}]
     let lastQuals = [];
     let lastTotal = 0;
+
+    function renderAgg(rows){
+      // group by mocText
+      const map = new Map(); // key -> {count,sum}
+      let totalBonus = 0; // only >0
+      let totalPenalty = 0; // only <0
+      let totalAll = 0;
+
+      for(const r of rows){
+        const key = r.mocText;
+        const cur = map.get(key) || { count:0, sum:0 };
+        cur.count += 1;
+        cur.sum += r.money;
+        map.set(key, cur);
+
+        totalAll += r.money;
+        if(r.money > 0) totalBonus += r.money;
+        if(r.money < 0) totalPenalty += r.money;
+      }
+
+      // sort: by numeric moc descending, then special keys
+      const keys = Array.from(map.keys());
+      const parseMocValue = (k)=>{
+        // ">=12,000" => 12000 ; "<6,000" => -1 ; "—" => -2
+        if(k.startsWith(">=")){
+          const n = Number(k.replace(">=","").replace(/,/g,""));
+          return Number.isFinite(n) ? n : -3;
+        }
+        if(k.startsWith("<")) return -1;
+        if(k === "—") return -2;
+        return -3;
+      };
+      keys.sort((a,b)=> parseMocValue(b) - parseMocValue(a));
+
+      aggBody.innerHTML = "";
+      if(!rows.length){
+        aggBody.innerHTML = `<tr><td colspan="3" style="color:var(--muted)">Chưa có dữ liệu</td></tr>`;
+      } else {
+        for(const k of keys){
+          const v = map.get(k);
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${k}</td>
+            <td>${fmt(v.count)}</td>
+            <td>${fmt(v.sum)}</td>
+          `;
+          aggBody.appendChild(tr);
+        }
+      }
+
+      aggFooter.textContent =
+        `Tổng thưởng: ${fmt(totalBonus)}đ | Tổng phạt: ${fmt(totalPenalty)}đ | Thưởng - Phạt: ${fmt(totalAll)}đ`;
+    }
 
     function renderResults(rows, total, quals){
       rsBody.innerHTML = "";
@@ -512,6 +596,8 @@
 
       summaryEl.textContent =
         `Tổng ngày: ${rows.length} | Tổng tiền: ${fmt(total)} đ | Mốc đủ điều kiện: ${qualText}`;
+
+      renderAgg(rows);
     }
 
     // =========================
@@ -566,7 +652,7 @@
           ? `>=${fmt(moc)}`
           : ((penaltyOn && xu < penMin) ? `<${fmt(penMin)}` : "—");
 
-        rows.push({ day: i+1, xu, mocText, money });
+        rows.push({ day: i+1, xu, mocText, money, mocRaw: moc });
       }
 
       lastRows = rows;
@@ -597,7 +683,6 @@
       const header = ["Ngày","Xu","Mốc áp dụng","Tiền (VND)"];
       const lines = [header.join(",")];
       for(const r of lastRows){
-        // CSV simple: wrap if needed
         const row = [
           r.day,
           r.xu,
@@ -606,7 +691,7 @@
         ];
         lines.push(row.join(","));
       }
-      const csv = "\uFEFF" + lines.join("\n"); // BOM for Excel VN
+      const csv = "\uFEFF" + lines.join("\n");
       downloadBlob("kpi_ngay.csv", new Blob([csv], {type:"text/csv;charset=utf-8"}));
     });
 
@@ -630,8 +715,6 @@
       }
 
       const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-      // Optional: set column widths
       ws["!cols"] = [{wch:8},{wch:14},{wch:18},{wch:14}];
 
       const wb = XLSX.utils.book_new();
