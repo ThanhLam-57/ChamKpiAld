@@ -242,6 +242,7 @@
           <div class="row between">
             <button class="btn primary" id="btnCalc">Tính KPI</button>
             <div class="row">
+              <button class="btn" id="btnCopy2">Copy 2 cột</button>
               <button class="btn ok" id="btnCsv">Export CSV</button>
               <button class="btn ok" id="btnXlsx">Export Excel</button>
             </div>
@@ -271,6 +272,7 @@
           <div class="bd">
             <div class="field">
               <div class="chk">
+                <!-- để checked giống bản PyQt5 (bật phạt mặc định) -->
                 <input type="checkbox" id="chkPenalty" />
                 <span>Bật phạt nếu &lt; ngưỡng</span>
               </div>
@@ -525,9 +527,8 @@
     let lastTotal = 0;
 
     function renderAgg(rows){
-      // group by mocText
       const map = new Map(); // key -> {count,sum}
-      let totalBonus = 0; // only >0
+      let totalBonus = 0;   // only >0
       let totalPenalty = 0; // only <0
       let totalAll = 0;
 
@@ -543,10 +544,9 @@
         if(r.money < 0) totalPenalty += r.money;
       }
 
-      // sort: by numeric moc descending, then special keys
+      // sort by moc value desc
       const keys = Array.from(map.keys());
       const parseMocValue = (k)=>{
-        // ">=12,000" => 12000 ; "<6,000" => -1 ; "—" => -2
         if(k.startsWith(">=")){
           const n = Number(k.replace(">=","").replace(/,/g,""));
           return Number.isFinite(n) ? n : -3;
@@ -659,6 +659,40 @@
       lastQuals = quals;
       lastTotal = total;
       renderResults(rows, total, quals);
+    });
+
+    // =========================
+    // COPY 2 COLUMNS (TSV for Google Sheets)
+    // =========================
+    document.getElementById("btnCopy2").addEventListener("click", async () => {
+      if(!lastRows.length){
+        alert("Chưa có dữ liệu. Hãy bấm Tính KPI trước.");
+        return;
+      }
+
+      const lines = [];
+      lines.push(["Mốc áp dụng", "Tiền (VND)"].join("\t"));
+      for(const r of lastRows){
+        lines.push([String(r.mocText), String(r.money)].join("\t"));
+      }
+      const tsv = lines.join("\n");
+
+      try{
+        await navigator.clipboard.writeText(tsv);
+        alert("Đã copy 2 cột (Mốc áp dụng, Tiền). Dán vào Google Sheet là ra đúng 2 cột.");
+      }catch(e){
+        // fallback nếu bị chặn clipboard
+        const ta = document.createElement("textarea");
+        ta.value = tsv;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        ta.remove();
+        alert("Đã copy 2 cột (fallback). Dán vào Google Sheet là ra đúng 2 cột.");
+      }
     });
 
     // =========================
